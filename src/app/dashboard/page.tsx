@@ -3,6 +3,8 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 
 type Applications = {
     id: string
@@ -16,15 +18,28 @@ type Applications = {
 }
 
 export default function DashBoard(){
+    const {data: session, status} = useSession()
+    const router = useRouter()
+
 
     //use state for the application
     const[applications, setApplications] = useState<Applications[]>([])
     const[isLoading, setIsLoading] = useState(true)
+    
+    useEffect(() => {
+        if(status === 'unauthenticated'){
+            router.push('/auth/signin')
+        }
+    },[status, router])
+
+    
 
     // Fetch the data when componenet mounts
     useEffect(() => {
-        fetchApplications()
-    }, [])
+    if (status === 'authenticated') {
+      fetchApplications()
+    }
+  }, [status])
 
     const fetchApplications = async () => {
         setIsLoading(true)
@@ -38,6 +53,14 @@ export default function DashBoard(){
       setIsLoading(false)
     }
   }
+  
+  if(status === 'loading'){
+        return (
+            <div className='min-h-screen flex items-center justify-center'>
+                <p>Loading ...</p>
+            </div>
+        )
+    }
 
     const calculateStats = () => {
         const total = applications?.length ?? 0

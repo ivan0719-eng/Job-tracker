@@ -1,9 +1,11 @@
 'use client'
 
+import Link from 'next/link'
 import { useState, useEffect } from 'react'
-import { type } from '../../.next/types/routes';
-import { error } from 'console';
-import { NextResponse } from 'next/server';
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
+import { signOut } from 'next-auth/react'
+
 
 type Application = {
   id: string
@@ -18,6 +20,9 @@ type Application = {
 }
 
 export default function Home() {
+  const {data: session, status} = useSession()
+  const router = useRouter()
+
   const [applications, setApplications] = useState<Application[]>([])
   const [company, setCompany] = useState('')
   const [position, setPosition] = useState('')
@@ -28,11 +33,20 @@ export default function Home() {
   const [bullets, setBullets] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
   
+  
+  useEffect(() => {
+    if( status === "unauthenticated"){
+      router.push('/auth/signin')
+    }
+  },[status, router])
 
+  
 
   useEffect(() => {
-    fetchApplications()
-  }, [])
+    if (status === 'authenticated') {
+      fetchApplications()
+    }
+  }, [status])
 
   const fetchApplications = async () => {
     const res = await fetch('/api/applications')
@@ -142,12 +156,58 @@ export default function Home() {
     }
   }
 
+  if(status === "loading"){
+    return (
+      <div className='min-h-screen flex items-center justify-center'>
+        <p>
+          Loading ...
+        </p>
+      </div>
+    )
+  }
+
+  if (status === 'unauthenticated') {
+    return null // Redirecting...
+  }
+
+  {session && (
+    <div className='mb-8 flex items-center justify-between bg-white p-4 rounded-lg shadow'>
+      <div className='flex items-center gap-3'>
+        {session.user?.image && (
+          <img 
+          src= {session.user.image} 
+          alt= {session.user.name || 'User'}
+          className='w-10 h-10 rounded-full'
+          />
+        ) }
+      </div>
+
+      /* This button will be moved to the settings page later */
+    <button
+        onClick={() => signOut()}
+        className='px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600'
+    >
+      Sign Out
+    </button>
+    </div>
+  )}
+
   return (
     <main className="min-h-screen p-8 bg-gray-50">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-4xl font-bold mb-8 text-black">Job Application Tracker</h1>
+
+        {/*Dashboard Navigation */}
+        <div className="mb-8 flex gap-4">
+          <Link
+          href={"/dashboard"}
+          className='bg-purple-500 text-white px-6 py-3 rounded-lg hover:bg-purple-600 transition-colors font-semibold'
+          >
+            📊 View Analytics Dashboard
+          </Link>
+        </div>
         
-        // Application Form
+        {/* Application Form */} 
         <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow mb-8">
           <div className="grid grid-cols-2 gap-4">
             <input 
